@@ -8,25 +8,28 @@ vi.mock('../../src/utils/shell-detection.js', () => ({
 }));
 
 // Mock the ZshInstaller
-vi.mock('../../src/core/completions/installers/zsh-installer.js', () => ({
-  ZshInstaller: vi.fn().mockImplementation(() => ({
-    install: vi.fn().mockResolvedValue({
-      success: true,
-      installedPath: '/home/user/.oh-my-zsh/completions/_openspec',
-      isOhMyZsh: true,
-      message: 'Completion script installed successfully for Oh My Zsh',
-      instructions: [
-        'Completion script installed to Oh My Zsh completions directory.',
-        'Restart your shell or run: exec zsh',
-        'Completions should activate automatically.',
-      ],
-    }),
-    uninstall: vi.fn().mockResolvedValue({
-      success: true,
-      message: 'Completion script removed from /home/user/.oh-my-zsh/completions/_openspec',
-    }),
-  })),
-}));
+vi.mock('../../src/core/completions/installers/zsh-installer.js', () => {
+  const mockInstall = vi.fn().mockResolvedValue({
+    success: true,
+    installedPath: '/home/user/.oh-my-zsh/completions/_openspec',
+    isOhMyZsh: true,
+    message: 'Completion script installed successfully for Oh My Zsh',
+    instructions: [
+      'Completion script installed to Oh My Zsh completions directory.',
+      'Restart your shell or run: exec zsh',
+      'Completions should activate automatically.',
+    ],
+  });
+  const mockUninstall = vi.fn().mockResolvedValue({
+    success: true,
+    message: 'Completion script removed from /home/user/.oh-my-zsh/completions/_openspec',
+  });
+  return {
+    ZshInstaller: function () {
+      return { install: mockInstall, uninstall: mockUninstall };
+    },
+  };
+});
 
 describe('CompletionCommand', () => {
   let command: CompletionCommand;
@@ -195,20 +198,16 @@ describe('CompletionCommand', () => {
 
   describe('error handling', () => {
     it('should handle installation failures gracefully', async () => {
-      const { ZshInstaller } = await import('../../src/core/completions/installers/zsh-installer.js');
-      vi.mocked(ZshInstaller).mockImplementationOnce(() => ({
+      const mockFactory = await import('../../src/core/completions/factory.js');
+      const originalCreateInstaller = mockFactory.CompletionFactory.createInstaller;
+      mockFactory.CompletionFactory.createInstaller = vi.fn().mockReturnValue({
         install: vi.fn().mockResolvedValue({
           success: false,
           isOhMyZsh: false,
           message: 'Permission denied',
         }),
         uninstall: vi.fn(),
-        isInstalled: vi.fn(),
-        getInstallationInfo: vi.fn(),
-        isOhMyZshInstalled: vi.fn(),
-        getInstallationPath: vi.fn(),
-        backupExistingFile: vi.fn(),
-      } as any));
+      }) as any;
 
       const cmd = new CompletionCommand();
       await cmd.install({ shell: 'zsh' });
@@ -217,22 +216,20 @@ describe('CompletionCommand', () => {
         expect.stringContaining('Permission denied')
       );
       expect(process.exitCode).toBe(1);
+
+      mockFactory.CompletionFactory.createInstaller = originalCreateInstaller;
     });
 
     it('should handle uninstallation failures gracefully', async () => {
-      const { ZshInstaller } = await import('../../src/core/completions/installers/zsh-installer.js');
-      vi.mocked(ZshInstaller).mockImplementationOnce(() => ({
+      const mockFactory = await import('../../src/core/completions/factory.js');
+      const originalCreateInstaller = mockFactory.CompletionFactory.createInstaller;
+      mockFactory.CompletionFactory.createInstaller = vi.fn().mockReturnValue({
         install: vi.fn(),
         uninstall: vi.fn().mockResolvedValue({
           success: false,
           message: 'Completion script is not installed',
         }),
-        isInstalled: vi.fn(),
-        getInstallationInfo: vi.fn(),
-        isOhMyZshInstalled: vi.fn(),
-        getInstallationPath: vi.fn(),
-        backupExistingFile: vi.fn(),
-      } as any));
+      }) as any;
 
       const cmd = new CompletionCommand();
       await cmd.uninstall({ shell: 'zsh', yes: true });
@@ -241,6 +238,8 @@ describe('CompletionCommand', () => {
         expect.stringContaining('Completion script is not installed')
       );
       expect(process.exitCode).toBe(1);
+
+      mockFactory.CompletionFactory.createInstaller = originalCreateInstaller;
     });
   });
 
