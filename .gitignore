@@ -160,8 +160,3 @@ opencode.json
 # Bun
 bun.lock
 
-# TmuxCode
-.tmuxcode/
-!.tmuxcode/config.yaml
-.worktrees/
-.tmuxcode/manager-session.json
