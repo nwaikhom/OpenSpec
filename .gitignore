@@ -140,7 +140,6 @@ dist/
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-
 # Claude
 .claude/
 CLAUDE.md
@@ -159,12 +158,4 @@ opencode.json
 
 # Bun
 bun.lock
-
-
-
-
-# TmuxCode
-.tmuxcode/
-!.tmuxcode/config.yaml
-.worktrees/
-.tmuxcode/manager-session.json
+.grepai/

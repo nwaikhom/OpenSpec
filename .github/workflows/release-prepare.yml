@@ -39,7 +39,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24' # Node 24 includes npm 11.5.1+ required for OIDC
+          node-version: '26.5.0'
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
